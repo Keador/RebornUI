@@ -1,0 +1,24 @@
+## Interface: 80000
+## Version: 1.1.8-alpha
+## Author: Bynas
+## Title: RebornUI-|cff5178ba1.1.8-alpha|r
+## Notes: A few UI tweaks for World of Warcraft and ElvUI
+## SavedVariables: RebornUI_DB
+
+## OptionalDeps: ElvUI, Skada, Recount, Details
+
+libs\libs.xml
+localization\enUS.lua
+utils\DevHelper.lua
+
+RebornUI.lua
+
+events\EventSystem.lua
+events\Events.lua
+settings\DefaultSettings.lua
+settings\DefaultCharSettings.lua
+
+modules\Modules.lua
+
+design\Design.xml
+modules\Modules.xml
