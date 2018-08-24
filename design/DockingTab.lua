@@ -11,8 +11,6 @@ local mixin = {};
 local AVAILABLE_TABS = {};
 local SPACING;
 
-local DropDown_OnInitialize;
-
 ---NewDockingFrame
 ---@param dockManager DockManager dock manager that this tab will dock to
 ---@param title string title to be displayed on the tab
@@ -41,6 +39,16 @@ function design:NewDockingTab(dockManager, title, type)
     return tab;
 end
 
+function DropDown_OnInitialize(dropDown)
+    --@debug@
+    RebornUI:Print("DropDownOnInitialize()");
+    --@end-debug@
+    if not dropDown.backdrop then
+        dropDown:CreateBackdrop();
+    end
+    dropDown:Show();
+end
+
 function mixin:OnClick(button, dockManager)
     PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON);
     if button == "LeftButton" then
@@ -53,16 +61,6 @@ function mixin:OnClick(button, dockManager)
             self.dropDown:Show();
         end
     end
-end
-
-function DropDown_OnInitialize(dropDown)
-    --@debug@
-    RebornUI:Print("DropDownOnInitialize()");
-    --@end-debug@
-    if not dropDown.backdrop then
-        dropDown:CreateBackdrop();
-    end
-    dropDown:Show();
 end
 
 function mixin:SetTitle(title)
