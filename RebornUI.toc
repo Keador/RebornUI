@@ -1,13 +1,29 @@
 ## Interface: 80000
-## Version: 1.1.8-alpha
+## Version: @project-version@
 ## Author: Bynas
-## Title: RebornUI-|cff5178ba1.1.8-alpha|r
+## Title: RebornUI
 ## Notes: A few UI tweaks for World of Warcraft and ElvUI
 ## SavedVariables: RebornUI_DB
 
 ## OptionalDeps: ElvUI, Skada, Recount, Details
 
-libs\libs.xml
+libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+libs\AceAddon-3.0\AceAddon-3.0.xml
+libs\AceEvent-3.0\AceEvent-3.0.xml
+# libs\AceTimer-3.0\AceTimer-3.0.xml
+# libs\AceBucket-3.0\AceBucket-3.0.xml
+libs\AceHook-3.0\AceHook-3.0.xml
+libs\AceDB-3.0\AceDB-3.0.xml
+libs\AceDBOptions-3.0\AceDBOptions-3.0.xml
+libs\AceLocale-3.0\AceLocale-3.0.xml
+libs\AceConsole-3.0\AceConsole-3.0.xml
+# libs\AceGUI-3.0\AceGUI-3.0.xml
+libs\AceConfig-3.0\AceConfig-3.0.xml
+# libs\AceComm-3.0\AceComm-3.0.xml
+# libs\AceTab-3.0\AceTab-3.0.xml
+# libs\AceSerializer-3.0\AceSerializer-3.0.xml
+
 localization\enUS.lua
 utils\DevHelper.lua
 
@@ -22,3 +38,7 @@ modules\Modules.lua
 
 design\Design.xml
 modules\Modules.xml
+
+#@debug@
+## Version: Development
+#@end-debug@

@@ -11,6 +11,8 @@ local mixin = {};
 local AVAILABLE_TABS = {};
 local SPACING;
 
+local DropDown_OnInitialize;
+
 ---NewDockingFrame
 ---@param dockManager DockManager dock manager that this tab will dock to
 ---@param title string title to be displayed on the tab
@@ -33,6 +35,8 @@ function design:NewDockingTab(dockManager, title, type)
     tab.frame:CreateBackdrop("Transparent")
     tab.frame.backdrop:SetBackdropColor(0, 0, 0, 0);
 
+    tab.dropDown:SetScript("OnShow", function(dropDown) UIDropDownMenu_Initialize(dropDown, DropDown_OnInitialize, "MENU") end)
+
     SPACING = SPACING or design:GetSpacing();
     return tab;
 end
@@ -42,7 +46,23 @@ function mixin:OnClick(button, dockManager)
     if button == "LeftButton" then
         if self.dockID == dockManager.selectedTab then return end
         dockManager:SelectTab(self.dockID);
+    elseif button == "RightButton" then
+        if self.dropDown:IsShown() then
+            self.dropDown:Hide();
+        else
+            self.dropDown:Show();
+        end
     end
+end
+
+function DropDown_OnInitialize(dropDown)
+    --@debug@
+    RebornUI:Print("DropDownOnInitialize()");
+    --@end-debug@
+    if not dropDown.backdrop then
+        dropDown:CreateBackdrop();
+    end
+    dropDown:Show();
 end
 
 function mixin:SetTitle(title)
