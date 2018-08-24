@@ -13,6 +13,8 @@ local SPACING;
 
 local DropDown_OnInitialize;
 
+local placeholder
+
 ---NewDockingFrame
 ---@param dockManager DockManager dock manager that this tab will dock to
 ---@param title string title to be displayed on the tab
