@@ -25,7 +25,9 @@ libs\AceConfig-3.0\AceConfig-3.0.xml
 # libs\AceSerializer-3.0\AceSerializer-3.0.xml
 
 localization\enUS.lua
+#@debug@
 utils\DevHelper.lua
+#@end-debug@
 
 RebornUI.lua
 
@@ -34,10 +36,9 @@ events\Events.lua
 settings\DefaultSettings.lua
 settings\DefaultCharSettings.lua
 
-modules\Modules.lua
+core\Core.xml
 
-design\Design.xml
-modules\Modules.xml
+modules\LoadModules.xml
 
 #@debug@
 ## Version: Development

@@ -11,6 +11,9 @@ local P = {
         enableRecount = true,
         enableDetails = true,
         visibleBars = 7,
+        positions = {
+
+        },
     },
 }
 
