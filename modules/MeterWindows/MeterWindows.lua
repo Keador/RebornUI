@@ -10,10 +10,14 @@ local design = RebornUI:GetModule("Design");
 ---@type RebornUILocalization
 local L = RebornUI.L;
 
+local RegisterForFontChange;
 ---@type Dock
 local dock;
 
 local SPACING;
+local fontChangeRegistry = {};
+
+local tinsert = table.insert;
 
 function MeterWindows:PostInitialization()
     EventSystem:RemoveEvent(self, events.PostInitialization);
@@ -86,11 +90,14 @@ end
 
 function MeterWindows:FontsChanged()
     dock:UpdateTabFonts();
-    self:Skada_ApplySettings(_G.Skada);
+
+    for i = 1, #fontChangeRegistry do
+        fontChangeRegistry[i]();
+    end
 end
 
 function MeterWindows:LoadSkada()
-    local Skada = _G.Skada;
+    local Skada = _G["Skada"];
     self:SecureHook(Skada, "ApplySettings", "Skada_ApplySettings");
     self:Hook(Skada, "CreateWindow", function(skada, name, db)
         if not db then
@@ -98,15 +105,16 @@ function MeterWindows:LoadSkada()
         end
     end);
     self:Hook(Skada, "DeleteWindow", "Skada_DeleteWindow");
+    RegisterForFontChange(self.Skada_ApplySettings);
 end
 
-function MeterWindows:Skada_ApplySettings(Skada)
+function MeterWindows:Skada_ApplySettings()
 
-    for _, win in ipairs(Skada:GetWindows()) do
-        local isNew = win.db.name == self.hasNewWindow;
+    for _, win in ipairs(_G["Skada"]:GetWindows()) do
+        local isNew = win.db.name == MeterWindows.hasNewWindow;
 
         if not win.tab or isNew then
-            local tab = dock:NewTab(win.db.name, self.SV.positions[win.db.name]);
+            local tab = dock:NewTab(win.db.name, MeterWindows.SV.positions[win.db.name]);
             win.embedID = tab.position;
 
             -- Locks the BarGroup from being resized.
@@ -129,14 +137,14 @@ function MeterWindows:Skada_ApplySettings(Skada)
         win.bargroup:SetFrameLevel(win.frameLevel);
 
         win.bargroup:SetInside(win.tab.frame);
-        win.bargroup:SetBarHeight((win.bargroup:GetHeight()) / self.SV.visibleBars);
+        win.bargroup:SetBarHeight((win.bargroup:GetHeight()) / MeterWindows.SV.visibleBars);
         win.bargroup:SetLength(win.bargroup:GetWidth());
 
         win.bargroup:SetFont(design:GetChatFont(2));
 
         if isNew then
             dock:SelectTab(win.tab);
-            self.hasNewWindow = nil;
+            MeterWindows.hasNewWindow = nil;
         end
     end
 end
@@ -200,4 +208,8 @@ function MeterWindows:LoadRecount()
     Recount.Colors:SetColor("Window", "Background", { r = 0, g = 0, b = 0, a = 0 });
 
     Recount:ResizeMainWindow();
+end
+
+function RegisterForFontChange(func)
+   tinsert(fontChangeRegistry, func);
 end
