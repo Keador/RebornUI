@@ -3,8 +3,15 @@
     <words>
       <w>bargroup</w>
       <w>barslocked</w>
+      <w>datatexts</w>
       <w>enabletitle</w>
+      <w>funcs</w>
+      <w>soundkit</w>
+      <w>tdelete</w>
+      <w>tindex</w>
+      <w>tindexof</w>
       <w>tinsert</w>
+      <w>tremove</w>
       <w>undock</w>
     </words>
   </dictionary>

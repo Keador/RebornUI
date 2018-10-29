@@ -21,10 +21,10 @@ local EVENTS = {
     TabsSorted = "TabsSorted",
 }
 
----GetEventSystem
----@return EventSystem
-function RebornUI:GetEventSystem()
-    return self.EventSystem;
+---GetEventHandler
+---@return EventHandler
+function RebornUI:GetEventHandler()
+    return self.EventHandler;
 end
 
 ---GetEvents

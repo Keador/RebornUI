@@ -1,8 +1,8 @@
 ---@type RebornUI
 local _, RebornUI = ...;
 ---@class Design : RebornUIModule
-local Design = RebornUI:LoadModule("Design");
-local EventSystem = RebornUI:GetEventSystem();
+local Design = RebornUI:CreateModule("Design");
+local EventHandler = RebornUI:GetEventHandler();
 local events = RebornUI:GetEvents();
 local LSM = RebornUI.LSM;
 

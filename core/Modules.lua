@@ -1,6 +1,6 @@
 ---@type RebornUI
 local _, RebornUI = ...;
-local EventSystem = RebornUI:GetEventSystem();
+local EventHandler = RebornUI:GetEventHandler();
 local events = RebornUI:GetEvents();
 
 ---@type RebornUIModule
@@ -8,40 +8,38 @@ local prototype = {};
 
 ---@private
 function prototype:Initialize(ElvUI)
-    EventSystem:RemoveEvent(self, events.Initialize);
+    EventHandler:RemoveEvent(self, events.Initialize);
 
     self.ElvUI = ElvUI;
     self.SV = RebornUI.db.profile[self:GetName()];
 
-    EventSystem:AddEvent(self, events.PostInitialization);
+    EventHandler:AddEvent(self, events.PostInitialization);
 end
 
 ---@private
 function prototype:PostInitialization()
-    EventSystem:RemoveEvent(self, events.PostInitialization);
+    EventHandler:RemoveEvent(self, events.PostInitialization);
 
-    EventSystem:AddEvent(self, events.Enable);
+    EventHandler:AddEvent(self, events.Enable);
 end
 
 function prototype:Enable()
-    EventSystem:AddEvent(self, events.Disable);
+    EventHandler:AddEvent(self, events.Disable);
 end
 
 function prototype:Disable()
-    EventSystem:AddEvent(self, events.Enable);
+    EventHandler:AddEvent(self, events.Enable);
 end
 
 function prototype:OnEvent(event, ...)
     self[event](self, ...);
 end
 
----LoadModule
----@param name string name of the module
----@return RebornUIModule
-function RebornUI:LoadModule(name, ...)
-    ---@type RebornUIModule
+---@return Module
+function RebornUI:CreateModule(name, ...)
+    ---@class  Module : AceAddonModule
     local module = self:NewModule(name, prototype, "AceEvent-3.0", "AceHook-3.0", ...);
 
-    EventSystem:AddEvent(module, events.Initialize);
+    EventHandler:AddEvent(module, events.Initialize);
     return module;
 end

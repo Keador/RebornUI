@@ -1,4 +1,37 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
     <Script file="MeterWindows.lua"/>
-    <Script file="Dock.lua"/>
+
+    <ScrollFrame name="RebornUI_MeterDockTemplate" virtual="true" frameStrata="LOW">
+        <Frames>
+            <Frame parentKey="meterAnchor"/>
+            <Button parentKey="overflowButton" alpha="0.7" hidden="true">
+                <Size x="16" y="16"/>
+                <Anchors>
+                    <Anchor point="RIGHT"/>
+                </Anchors>
+                <Frames>
+                    <Frame parentKey="list" inherits="UIDropDownMenuTemplate"/>
+                </Frames>
+                <Scripts>
+                    <OnLoad>
+                        self.width = self:GetWidth();
+                    </OnLoad>
+                    <OnClick>
+                        PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON);
+                        ToggleDropDownMenu(1, nil, self.list);
+                    </OnClick>
+                </Scripts>
+                <NormalTexture file="Interface/ChatFrame/chat-tab-arrow"/>
+                <HighlightTexture file="Interface/ChatFrame/chat-tab-arrow-on"/>
+            </Button>
+        </Frames>
+        <ScrollChild>
+            <Frame>
+                <Size x="1" y="22"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT"/>
+                </Anchors>
+            </Frame>
+        </ScrollChild>
+    </ScrollFrame>
 </Ui>
