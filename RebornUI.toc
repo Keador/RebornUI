@@ -33,8 +33,6 @@ RebornUI.lua
 
 events\EventHandler.lua
 events\Events.lua
-settings\DefaultSettings.lua
-settings\DefaultCharSettings.lua
 
 core\Core.xml
 

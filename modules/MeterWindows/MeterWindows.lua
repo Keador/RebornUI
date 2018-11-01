@@ -2,20 +2,22 @@
 local rui = RebornUI;
 
 ---@class MeterWindows : Module
-local MeterWindows = rui:CreateModule("MeterWindows");
+local MW = rui:NewModule("MeterWindows");
 
 ---@class MeterDock : ScrollFrame
 ---@field overflowButton OverflowButton
 local DockMixin = {};
-DockMixin.DOCKED_TABS = {};
-DockMixin.STORED_TABS = {};
-DockMixin.HIDDEN_TABS = {};
 
 ---@class DockingTab
 local DockTabMixin = {};
 
----@type Design
-local design = rui:GetModule("Design");
+---@type MeterWindowsProfileSettings
+local PROFILE;
+---@type MeterWindowsGlobalSettings
+local GLOBAL;
+---@type MeterWindowCharacterSettings
+local CHAR;
+
 ---@type RebornUILocalization
 local L = RebornUI.L;
 
@@ -32,41 +34,39 @@ local dock;
 local SPACING;
 local OverflowButton_UpdateList, TabDropDown_OnInitialize, GetNextTabID;
 local newSkadaWindowFound;
+
+local DOCKED_TABS = {};
+local STORED_TABS = {};
+local HIDDEN_TABS = {};
 local embeds = {
     "Recount",
     "Skada",
     --"Details",
 }
 
-function MeterWindows:PostInitialization()
-    EventHandler:RemoveEvent(self, events.PostInitialization);
+function MW:Initialize(...)
+    SPACING = SPACING or rui:GetSpacing();
+    PROFILE, GLOBAL, CHAR = ...;
 
-    EventHandler:AddEvent(self, events.Enable);
-    EventHandler:AddEvent(self, events.ElvUIInitialized);
-    EventHandler:AddEvent(self, events.ElvUINotFound);
-end
-
-function MeterWindows:OnInitialize()
-    SPACING = SPACING or design:GetSpacing();
 
     dock = CreateFrame("ScrollFrame", name, UIParent, "RebornUI_MeterDockTemplate");
     Mixin(dock, DockMixin);
 
-    dock:SetupOverflowDropDownMenu();
+    local oB = dock.overflowButton;
+    oB.list:SetScript("OnShow", function(l) UIDropDownMenu_Initialize(l, OverflowButton_UpdateList, "Menu") end);
+
+    UIDropDownMenu_Initialize(oB.list, OverflowButton_UpdateList, "Menu");
+    UIDropDownMenu_SetAnchor(oB.list, 0, 0, "TOPRIGHT", oB, "TOPRIGHT");
 end
 
-function MeterWindows:ElvUINotFound()
-
-end
-
-function MeterWindows:ElvUIInitialized()
+function MW:ElvUIInitialized()
     local RightChatPanel = RightChatPanel;
 
-    dock:SetPosition(RightChatPanel);
+    self:SetDockPosition(RightChatPanel);
     dock:Size(RightChatTab:GetSize());
 
     local function UpdateTabFont()
-        dock:UpdateTabFonts();
+        MW:UpdateTabFonts();
     end
     rui:RegisterForFontAndColorChange(UpdateTabFont)
     dock:Show();
@@ -82,13 +82,13 @@ function MeterWindows:ElvUIInitialized()
     end
 end
 
-function MeterWindows:TabsSorted()
+function MW:TabsSorted()
     if self.SkadaLoaded then
         local skadaWindows = _G.Skada:GetWindows();
         for i, win in ipairs(skadaWindows) do
             if not win.tab.isHidden then
                 win.embedID = win.tab.position;
-                self.SV.positions[win.db.name] = win.tab.position;
+                PROFILE.positions[win.db.name] = win.tab.position;
             end
         end
     end
@@ -98,7 +98,7 @@ function MeterWindows:TabsSorted()
     end
 end
 
-function MeterWindows:Skada_Load()
+function MW:Skada_Load()
     if not rui.SkadaLoaded then return end
 
     local Skada = _G["Skada"];
@@ -106,7 +106,7 @@ function MeterWindows:Skada_Load()
     -- We hook into Skada:ApplySettings() to redesign the Skada windows.
     local function ApplySettings()
         for _, win in ipairs(Skada:GetWindows()) do
-            MeterWindows:Skada_UpdateWindowSettings(win);
+            MW:Skada_UpdateWindowSettings(win);
         end
     end
     self:SecureHook(Skada, "ApplySettings", ApplySettings);
@@ -120,21 +120,21 @@ function MeterWindows:Skada_Load()
 
     -- We hook into Skada:DeleteWindow() so we know when a window is deleted
     local function DeleteWindow(sk, name)
-        for _, win in pairs(sk:GetWindows()) do
+        for _, win in ipairs(sk:GetWindows()) do
             if win.db.name == name then
-                dock:UndockTab(win.tab, true);
-                dock:SelectTab(1);
+                MW:UndockTab(win.tab, true);
+                MW:SelectTab(1);
             end
         end
     end
     self:Hook(Skada, "DeleteWindow", DeleteWindow);
 end
 
-function MeterWindows:Skada_UpdateWindowSettings(win)
+function MW:Skada_UpdateWindowSettings(win)
     local isNew = win.db.name == newSkadaWindowFound;
 
     if not win.tab or isNew then
-        local tab = dock:NewTab(win.db.name, MeterWindows.SV.positions[win.db.name]);
+        local tab = self:NewDockTab(win.db.name, PROFILE.positions[win.db.name]);
         win.embedID = tab.position;
 
         -- Locks the BarGroup from being resized.
@@ -157,18 +157,18 @@ function MeterWindows:Skada_UpdateWindowSettings(win)
     win.bargroup:SetFrameLevel(win.frameLevel);
 
     win.bargroup:SetInside(win.tab.frame);
-    win.bargroup:SetBarHeight((win.bargroup:GetHeight()) / MeterWindows.SV.visibleBars);
+    win.bargroup:SetBarHeight((win.bargroup:GetHeight()) / PROFILE.visibleBars);
     win.bargroup:SetLength(win.bargroup:GetWidth());
 
-    win.bargroup:SetFont(design:GetChatFont(2));
+    win.bargroup:SetFont(rui:GetChatFont(2));
 
     if isNew then
-        dock:SelectTab(win.tab);
+        self:SelectTab(win.tab);
         newSkadaWindowFound = nil;
     end
 end
 
-function MeterWindows:Recount_Load()
+function MW:Recount_Load()
     if not rui.RecountLoaded then return end
 
     local Recount = _G.Recount;
@@ -193,7 +193,7 @@ function MeterWindows:Recount_Load()
     self:Hook(Recount, "ResizeMainWindow", AdjustPosition);
 
     if not mainWindow.tab then
-        local tab = dock:NewTab("Recount", self.SV.positions["Recount"]);
+        local tab = self:NewDockTab("Recount", PROFILE.positions["Recount"]);
         mainWindow.embedID = tab.position;
         mainWindow.tab = tab;
         mainWindow:SetParent(tab.frame);
@@ -213,7 +213,7 @@ function MeterWindows:Recount_Load()
         Recount:LockWindows(true);
     end
 
-    Recount.db.profile.MainWindow.RowHeight = (mainWindow.tab.frame:GetHeight() - 15) / self.SV.visibleBars;
+    Recount.db.profile.MainWindow.RowHeight = (mainWindow.tab.frame:GetHeight() - 15) / PROFILE.visibleBars;
     --Recount.db.profile.MainWindowVis = true;
 
     Recount.Colors:SetColor("Window", "Title", { r = 0, g = 0, b = 0, a = 0 });
@@ -222,31 +222,20 @@ function MeterWindows:Recount_Load()
     Recount:ResizeMainWindow();
 end
 
-function DockMixin:SetupOverflowDropDownMenu()
-    ---@class OverflowButton : Button
-    ---@field list Frame
-    ---@field width number
-    local oB = self.overflowButton;
-    oB.list:SetScript("OnShow", function(l) UIDropDownMenu_Initialize(l, OverflowButton_UpdateList, "Menu") end);
-
-    UIDropDownMenu_Initialize(oB.list, OverflowButton_UpdateList, "Menu");
-    UIDropDownMenu_SetAnchor(oB.list, 0, 0, "TOPRIGHT", oB, "BOTTOMRIGHT");
-end
-
 ---@return DockingTab
-function DockMixin:NewTab(text, position)
+function MW:NewDockTab(text, position)
     local handlers = { "OnClick" };
     ---@type DockingTab
     local tab;
-    for i = 1, #self.STORED_TABS do
-        tab = tremove(self.STORED_TABS, i);
+    for i = 1, #STORED_TABS do
+        tab = tremove(STORED_TABS, i);
         break ;
     end
 
     if not tab then
         local id = GetNextTabID();
         local tabName = "RebornUI_MeterTab" .. id;
-        tab = CreateFrame("Button", tabName, self, nil, id);
+        tab = CreateFrame("Button", tabName, dock, nil, id);
         Mixin(tab, DockTabMixin);
 
         tab:Size(50, 22);
@@ -267,24 +256,24 @@ function DockMixin:NewTab(text, position)
 
     tab.position = position;
     tab:SetButtonText(text);
-    self:DockTab(tab);
+    MW:DockTab(tab);
 
     return tab;
 end
 
 ---@param tab DockingTab
-function DockMixin:DockTab(tab)
+function MW:DockTab(tab)
     if tab.position then
-        tinsert(self.DOCKED_TABS, tab.position, tab);
+        tinsert(DOCKED_TABS, tab.position, tab);
     else
-        tinsert(self.DOCKED_TABS, tab);
+        tinsert(DOCKED_TABS, tab);
     end
-    tab.frame:SetAllPoints(self.meterAnchor);
+    tab.frame:SetAllPoints(dock.meterAnchor);
     self:UpdateTabs();
 end
 
-function DockMixin:UndockTab(tab, permanent)
-    tdelete(self.DOCKED_TABS, tab);
+function MW:UndockTab(tab, permanent)
+    tdelete(DOCKED_TABS, tab);
 
     EventHandler:FireEvent(events.TabsSorted);
     self:UpdateTabs();
@@ -295,37 +284,37 @@ function DockMixin:UndockTab(tab, permanent)
     end
 end
 
-function DockMixin:HideTab(tab)
+function MW:HideTab(tab)
     tab.isHidden = true;
     self:UndockTab(tab);
     tab:Hide();
-    tinsert(self.HIDDEN_TABS, tab);
-    tab.hiddenID = #self.HIDDEN_TABS;
+    tinsert(HIDDEN_TABS, tab);
+    tab.hiddenID = #HIDDEN_TABS;
 end
 
-function DockMixin:ShowTab(tab)
-    tdelete(self.HIDDEN_TABS, tab);
+function MW:ShowTab(tab)
+    tdelete(HIDDEN_TABS, tab);
     tab.isHidden = false;
     tab.hiddenID = nil;
     self:DockTab(tab);
 end
 
-function DockMixin:SelectTab(tab)
-    if type(tab) == "number" then tab = self.DOCKED_TABS[tab] end
+function MW:SelectTab(tab)
+    if type(tab) == "number" then tab = DOCKED_TABS[tab] end
     self:SetSelectedTab(tab);
     self:UpdateTabs();
 end
 
-function DockMixin:SetSelectedTab(tab)
-    self.selected = tab;
+function MW:SetSelectedTab(tab)
+    dock.selected = tab;
 end
 
-function DockMixin:GetSelectedTab()
-    return self.selected or self.DOCKED_TABS[1];
+function MW:GetSelectedTab()
+    return dock.selected or DOCKED_TABS[1];
 end
 
 ---@param tab DockingTab
-function DockMixin:MoveTab(tab, direction)
+function MW:MoveTab(tab, direction)
     PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON);
     self:UndockTab(tab);
 
@@ -335,43 +324,43 @@ function DockMixin:MoveTab(tab, direction)
     self:SelectTab(tab);
 end
 
-function DockMixin:SetPosition(anchor, forceUpdate)
-    self.anchor = self.anchor or anchor;
+function MW:SetDockPosition(anchor, forceUpdate)
+    dock.anchor = dock.anchor or anchor;
 
-    self:ClearAllPoints();
-    self:Point("TOPLEFT", self.anchor, "TOPLEFT", SPACING, -SPACING);
-    self:Point("TOPRIGHT", self.anchor, "TOPRIGHT", -SPACING, -SPACING);
+    dock:ClearAllPoints();
+    dock:Point("TOPLEFT", dock.anchor, "TOPLEFT", SPACING, -SPACING);
+    dock:Point("TOPRIGHT", dock.anchor, "TOPRIGHT", -SPACING, -SPACING);
 
-    self.meterAnchor:Point("TOPLEFT", self, "BOTTOMLEFT", SPACING / 3, -SPACING);
-    if design.ElvUI.db.datatexts.rightChatPanel then
-        self.meterAnchor:Point("BOTTOMRIGHT", self.anchor, "BOTTOMRIGHT", -SPACING * 1.5, RightChatDataPanel:GetHeight() + (SPACING * 2));
+    dock.meterAnchor:Point("TOPLEFT", dock, "BOTTOMLEFT", SPACING / 3, -SPACING);
+    if rui.ElvUI.db.datatexts.rightChatPanel then
+        dock.meterAnchor:Point("BOTTOMRIGHT", dock.anchor, "BOTTOMRIGHT", -SPACING * 1.5, RightChatDataPanel:GetHeight() + (SPACING * 2));
     else
-        self.meterAnchor:Point("BOTTOMRIGHT", self.anchor, "BOTTOMRIGHT", -SPACING * 1.5, SPACING * 1.5);
+        dock.meterAnchor:Point("BOTTOMRIGHT", dock.anchor, "BOTTOMRIGHT", -SPACING * 1.5, SPACING * 1.5);
     end
 end
 
-function DockMixin:ShowOverflowButton()
-    local x = self.overflowButton:GetWidth() + 2;
+function MW:ShowOverflowButton()
+    local x = dock.overflowButton:GetWidth() + 2;
 
-    self.overflowButton:Point("TOPRIGHT", self.anchor, "TOPRIGHT", -4, -7);
-    self:Point("TOPRIGHT", self.anchor, "TOPRIGHT", -x, -2);
+    dock.overflowButton:Point("TOPRIGHT", dock.anchor, "TOPRIGHT", -4, -7);
+    dock:Point("TOPRIGHT", dock.anchor, "TOPRIGHT", -x, -2);
 
-    self.overflowButton:Show();
+    dock.overflowButton:Show();
 end
 
-function DockMixin:HideOverflowButton()
-    self:SetPosition();
-    self.overflowButton:Hide();
+function MW:HideOverflowButton()
+    self:SetDockPosition();
+    dock.overflowButton:Hide();
 end
 
-function DockMixin:UpdateTabs()
+function MW:UpdateTabs()
     local lastDockedTab, selectedTabIndex;
-    local scrollChild = self:GetScrollChild();
+    local scrollChild = dock:GetScrollChild();
 
     local numFrames = 0;
-    for i, tab in ipairs(self.DOCKED_TABS) do
+    for i, tab in ipairs(DOCKED_TABS) do
         local frame = tab.frame;
-        tab.position = tindexof(self.DOCKED_TABS, tab);
+        tab.position = tindexof(DOCKED_TABS, tab);
         numFrames = numFrames + 1;
         if self:GetSelectedTab() == tab then
             selectedTabIndex = numFrames;
@@ -397,40 +386,40 @@ function DockMixin:UpdateTabs()
 
     local tabSize = self:CalculateTabSize(numFrames);
 
-    for i = 1, #self.DOCKED_TABS do
-        self.DOCKED_TABS[i]:Resize(0, tabSize);
+    for i = 1, #DOCKED_TABS do
+        DOCKED_TABS[i]:Resize(0, tabSize);
     end
 
-    if self.hasOverflow or #self.HIDDEN_TABS > 0 then
+    if dock.hasOverflow or #HIDDEN_TABS > 0 then
         self:ShowOverflowButton();
     else
-        self.overflowButton:Hide();
+        self:HideOverflowButton();
     end
 
-    self.tabSize = tabSize;
-    self.numFrames = numFrames;
-    self.selectedTabIndex = selectedTabIndex;
+    dock.tabSize = tabSize;
+    dock.numFrames = numFrames;
+    dock.selectedTabIndex = selectedTabIndex;
 
-    self.isDirty = false;
+    dock.isDirty = false;
     self:JumpToTab();
 end
 
-function DockMixin:CalculateTabSize(numFrames)
+function MW:CalculateTabSize(numFrames)
     local MIN_SIZE, MAX_SIZE = 94, 104;
-    local scrollSize = self:GetWidth() + (self.overflowButton:IsShown() and -self.overflowButton.width or 0);
+    local scrollSize = dock:GetWidth() + (dock.overflowButton:IsShown() and -dock.overflowButton.width or 0);
 
     if numFrames * MAX_SIZE < scrollSize then
-        self.hasOverflow = false;
+        dock.hasOverflow = false;
         return MAX_SIZE;
     end
 
     if scrollSize / MIN_SIZE < numFrames then
-        scrollSize = scrollSize - self.overflowButton.width;
+        scrollSize = scrollSize - dock.overflowButton.width;
     end
 
     local numWholeTabs = min(floor(scrollSize / MIN_SIZE), numFrames);
     if scrollSize == 0 then
-        self.hasOverflow = numFrames > 0;
+        dock.hasOverflow = numFrames > 0;
         return 1;
     end
     if numWholeTabs == 0 then
@@ -438,45 +427,45 @@ function DockMixin:CalculateTabSize(numFrames)
     end
 
     local tabSize = scrollSize / numWholeTabs;
-    self.hasOverflow = numFrames > numWholeTabs;
+    dock.hasOverflow = numFrames > numWholeTabs;
 
     return tabSize;
 end
 
-function DockMixin:JumpToTab(lt)
+function MW:JumpToTab(lt)
     -- Setting leftTab here may cause a problem in the future
     local leftTab = self:GetLeftMostTab();
-    local numDisplayedTabs = floor(self:GetWidth() / self.tabSize);
+    local numDisplayedTabs = floor(dock:GetWidth() / dock.tabSize);
 
-    if self.selectedTabIndex then
-        if self.selectedTabIndex >= leftTab + numDisplayedTabs then
-            leftTab = self.selectedTabIndex - numDisplayedTabs + 1;
-        elseif self.selectedTabIndex < leftTab then
-            leftTab = self.selectedTabIndex;
+    if dock.selectedTabIndex then
+        if dock.selectedTabIndex >= leftTab + numDisplayedTabs then
+            leftTab = dock.selectedTabIndex - numDisplayedTabs + 1;
+        elseif dock.selectedTabIndex < leftTab then
+            leftTab = dock.selectedTabIndex;
         end
     end
 
-    leftTab = min(leftTab, self.numFrames - numDisplayedTabs + 1);
+    leftTab = min(leftTab, dock.numFrames - numDisplayedTabs + 1);
 
     leftTab = max(leftTab, 1);
 
-    self:SetHorizontalScroll(self.tabSize * (leftTab - 1));
+    dock:SetHorizontalScroll(dock.tabSize * (leftTab - 1));
     self:SetVisibleTabs(leftTab, self:GetRightMostTab(leftTab, numDisplayedTabs));
 
     -- TODO 7/30/2018: Overflow button pulse?
 end
 
-function DockMixin:GetLeftMostTab()
+function MW:GetLeftMostTab()
     -- This needs to be a separate function if we want to add dragging tabs to different positions
-    return floor((self:GetHorizontalScroll() / self.tabSize) + 0.5) + 1;
+    return floor((dock:GetHorizontalScroll() / dock.tabSize) + 0.5) + 1;
 end
 
-function DockMixin:GetRightMostTab(leftTab, numDisplayedTabs)
+function MW:GetRightMostTab(leftTab, numDisplayedTabs)
     return floor(leftTab + numDisplayedTabs) - 1;
 end
 
-function DockMixin:SetVisibleTabs(leftTab, rightTab)
-    for i, tab in ipairs(self.DOCKED_TABS) do
+function MW:SetVisibleTabs(leftTab, rightTab)
+    for i, tab in ipairs(DOCKED_TABS) do
         if tab.position < leftTab or tab.position > rightTab then
             tab:Hide();
         else
@@ -485,12 +474,12 @@ function DockMixin:SetVisibleTabs(leftTab, rightTab)
     end
 end
 
-function DockMixin:UpdateTabFonts()
-    local r, g, b = design:GetTabFontColor();
-    local f, s, o = design:GetTabFont();
+function MW:UpdateTabFonts()
+    local r, g, b = rui:GetTabFontColor();
+    local f, s, o = rui:GetTabFont();
 
-    for i = 1, #self.DOCKED_TABS do
-        local fs = self.DOCKED_TABS[i]:GetFontString();
+    for i = 1, #DOCKED_TABS do
+        local fs = DOCKED_TABS[i]:GetFontString();
         fs:FontTemplate(f, s, o);
         fs:SetTextColor(r, g, b);
     end
@@ -499,8 +488,8 @@ end
 function DockTabMixin:OnClick(button)
     PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON);
     if button == "LeftButton" then
-        if self == dock:GetSelectedTab() then return end
-        dock:SelectTab(self);
+        if self == MW:GetSelectedTab() then return end
+        MW:SelectTab(self);
         return ;
     end
     if button == "RightButton" then
@@ -538,7 +527,7 @@ function DockTabMixin:Resize(padding, absoluteSize, minWidth, maxWidth, absolute
 end
 
 function DockTabMixin:Store()
-    tinsert(self:GetParent().STORED_TABS, self);
+    tinsert(STORED_TABS, self);
     self:Hide();
 end
 
@@ -558,16 +547,16 @@ function TabDropDown_OnInitialize(dropDown)
     info.tooltipText = L.TAB_LEFT_TOOLTIP;
     info.disabled = tab.position == 1;
     info.notCheckable = true;
-    info.func = function() dock:MoveTab(tab, "left") end;
+    info.func = function() MW:MoveTab(tab, "left") end;
     UIDropDownMenu_AddButton(info);
 
     info = UIDropDownMenu_CreateInfo();
     info.text = L.MOVE_TAB_RIGHT;
     info.tooltipTitle = L.MOVE_TAB_RIGHT;
     info.tooltipText = L.TAB_RIGHT_TOOLTIP;
-    info.disabled = tab.position == #dock.DOCKED_TABS;
+    info.disabled = tab.position == #DOCKED_TABS;
     info.notCheckable = true;
-    info.func = function() dock:MoveTab(tab, "right") end;
+    info.func = function() MW:MoveTab(tab, "right") end;
     UIDropDownMenu_AddButton(info);
 
     info = UIDropDownMenu_CreateInfo();
@@ -575,10 +564,10 @@ function TabDropDown_OnInitialize(dropDown)
     info.tooltipTitle = L.HIDE_BUTTON_TOOLTIP_TITLE;
     info.tooltipText = format(L.HIDE_BUTTON_TOOLTIP, tab.title);
     info.tooltipOnButton = true;
-    info.disabled = #dock.DOCKED_TABS == 1;
+    info.disabled = #DOCKED_TABS == 1;
     info.func = function()
-        dock:HideTab(tab);
-        dock:UpdateTabs();
+        MW:HideTab(tab);
+        MW:UpdateTabs();
     end
     info.notCheckable = true;
     UIDropDownMenu_AddButton(info);
@@ -587,31 +576,31 @@ end
 function OverflowButton_UpdateList(list)
     local info = UIDropDownMenu_CreateInfo();
 
-    if #dock.HIDDEN_TABS > 0 then
-        info.text = format(L.HIDDEN_WINDOW_COUNT, #dock.HIDDEN_TABS);
+    if #HIDDEN_TABS > 0 then
+        info.text = format(L.HIDDEN_WINDOW_COUNT, #HIDDEN_TABS);
         info.isTitle = true
         info.notCheckable = true;
         UIDropDownMenu_AddButton(info);
 
-        for i, tab in ipairs(dock.HIDDEN_TABS) do
+        for i, tab in ipairs(HIDDEN_TABS) do
             info = UIDropDownMenu_CreateInfo();
             info.text = tab.title;
-            info.func = function() dock:ShowTab(tab) end;
+            info.func = function() MW:ShowTab(tab) end;
             info.notCheckable = true;
             UIDropDownMenu_AddButton(info);
         end
     end
 
     if dock.hasOverflow then
-        info.text = format(L.METER_WINDOW_COUNT, #dock.DOCKED_TABS);
+        info.text = format(L.METER_WINDOW_COUNT, #DOCKED_TABS);
         info.isTitle = true;
         info.notCheckable = true;
         UIDropDownMenu_AddButton(info);
 
-        for i, tab in ipairs(dock.DOCKED_TABS) do
+        for i, tab in ipairs(DOCKED_TABS) do
             info = UIDropDownMenu_CreateInfo();
             info.text = tab.title;
-            info.func = function() dock:SelectTab(tab) end;
+            info.func = function() MW:SelectTab(tab) end;
             info.notCheckable = true;
             UIDropDownMenu_AddButton(info);
         end
@@ -624,3 +613,27 @@ function GetNextTabID()
     return currentID
 end
 
+---@class MeterWindowsProfileSettings
+local p = {
+    enableSkada = true,
+    enableRecount = true,
+    enableDetails = true,
+    visibleBars = 7,
+    positions = {
+
+    },
+}
+
+---@class MeterWindowsGlobalSettings
+local g = {
+
+}
+
+---@class MeterWindowsCharacterSettings
+local c = {
+
+}
+
+local function init(...) MW:Initialize(...) end
+local function elvuiInit() MW:ElvUIInitialized() end
+rui:RegisterModule(MW:GetName(), init, elvuiInit, p, g, c);
