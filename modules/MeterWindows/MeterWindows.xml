@@ -26,7 +26,7 @@
             </Button>
         </Frames>
         <ScrollChild>
-            <Frame>
+            <Frame parentKey="scrollChild">
                 <Size x="1" y="22"/>
                 <Anchors>
                     <Anchor point="TOPLEFT"/>
@@ -34,4 +34,23 @@
             </Frame>
         </ScrollChild>
     </ScrollFrame>
+    <Button name="RebornUI_MeterDockTabTemplate" virtual="true">
+        <Size x="50" y="22"/>
+        <Frames>
+            <Frame parentKey="frame"/>
+            <Frame parentKey="dropDown" inherits="UIDropDownMenuTemplate">
+                <Scripts>
+                    <OnLoad>
+                        UIDropDownMenu_SetAnchor(self, 0, 0, "TOP", self:GetParent(), "TOP");
+                    </OnLoad>
+                </Scripts>
+            </Frame>
+        </Frames>
+        <Scripts>
+            <OnLoad>
+                self:RegisterForClicks("LeftButtonDown", "RightButtonDown");
+            </OnLoad>
+            <OnClick function="RebornUI_MeterDockTabOnClick"/>
+        </Scripts>
+    </Button>
 </Ui>
