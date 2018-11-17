@@ -30,7 +30,7 @@ utils\DevHelper.lua
 #@end-debug@
 
 RebornUI.lua
-
+media\SharedMedia.xml
 events\EventHandler.lua
 events\Events.lua
 
