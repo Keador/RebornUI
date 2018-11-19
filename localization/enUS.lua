@@ -1,6 +1,5 @@
-local addonName, RebornUI = ...;
 ---@class RebornUILocalization
-local L = LibStub("AceLocale-3.0"):NewLocale(addonName, "enUS", true, true);
+local L = LibStub("AceLocale-3.0"):NewLocale("RebornUI", "enUS", true, true);
 
 L.METER_EMBEDS = "Meter Embeds";
 L.METER_EMBEDS_DESC = "Addons that can be embedded into UI panels.";

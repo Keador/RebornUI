@@ -1,23 +1,25 @@
 ---@type RebornUI
-local rui = RebornUI;
+local R = RebornUI;
+local L, CONSTANTS, profile, global, char = R:GetData();
+local LSM = LibStub('LibSharedMedia-3.0');
 
-function rui:GetTabFontColor()
+function R:GetTabFontColor()
     return unpack(self.ElvUI["media"].rgbvaluecolor);
 end
 
-function rui:GetTabFont(sizeOff)
+function R:GetTabFont(sizeOff)
     local db = self.ElvUI.db.chat
     sizeOff = sizeOff or 0;
-    return self.LSM:Fetch("font", db.tabFont), db.tabFontSize + sizeOff, db.tabFontOutline;
+    return LSM:Fetch("font", db.tabFont), db.tabFontSize + sizeOff, db.tabFontOutline;
 end
 
-function rui:GetChatFont(sizeOff)
+function R:GetChatFont(sizeOff)
     local db = self.ElvUI.db.chat
     sizeOff = sizeOff or 0;
-    return self.LSM:Fetch("font", db.font), db.fontSize + sizeOff, db.fontOutline;
+    return LSM:Fetch("font", db.font), db.fontSize + sizeOff, db.fontOutline;
 end
 
-function rui:GetSpacing()
+function R:GetSpacing()
     if self.ElvUI then
         return self.ElvUI.Border * 3 - self.ElvUI.Spacing;
     else

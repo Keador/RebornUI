@@ -1,4 +1,4 @@
-local LSM = RebornUI.LSM;
+local LSM = LibStub("LibSharedMedia-3.0");
 
 LSM:Register("statusbar","RUI Blue", [[Interface\AddOns\RebornUI\media\textures\statusBars\blueGradient.tga]]);
 LSM:Register("statusbar","RUI Light Blue", [[Interface\AddOns\RebornUI\media\textures\statusBars\lightBlueGradient.tga]]);

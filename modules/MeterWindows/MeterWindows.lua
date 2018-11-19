@@ -1,23 +1,14 @@
 ---@type RebornUI
-local rui = RebornUI;
+local R = RebornUI;
+local L, CONSTANTS, profile, global, char = R:GetData();
 
 ---@class MeterWindows : Module
-local MW = rui:NewModule("MeterWindows");
+local MW = R:NewModule("MeterWindows");
 
 local NewDockTab, UpdateTabs, UpdateTabFonts, DockTab, UndockTab, HideTab, ShowTab, SelectTab, SetSelectedTab, GetSelectedTab, MoveTab, ResizeTabs;
 local SetDockPosition, ShowOverflowButton, HideOverflowButton;
 local OverflowButton_UpdateList, TabDropDown_OnInitialize;
 local CalculateTabSize, SetVisibleTabs, IterateDockedTabs, JumpToTab;
-
----@type MeterWindowsProfileSettings
-local PROFILE;
----@type MeterWindowsGlobalSettings
-local GLOBAL;
----@type MeterWindowCharacterSettings
-local CHAR;
-
----@type RebornUILocalization
-local L = RebornUI.L;
 
 local _G = _G;
 local tinsert, tremove, tdelete, tindexof = tinsert, tremove, tDeleteItem, tIndexOf;
@@ -37,10 +28,10 @@ local embeds = {
     "Skada",
     --"Details",
 }
+local loaded = {};
 
-function MW:Initialize(...)
-    SPACING = SPACING or rui:GetSpacing();
-    PROFILE, GLOBAL, CHAR = ...;
+function MW:Initialize()
+    SPACING = SPACING or R:GetSpacing();
 
     dock = CreateFrame("ScrollFrame", name, UIParent, "RebornUI_MeterDockTemplate");
 
@@ -57,38 +48,39 @@ function MW:ElvUIInitialized()
     SetDockPosition(RightChatPanel);
     dock:Size(RightChatTab:GetSize());
 
-    rui:RegisterForFontAndColorChange(UpdateTabFonts)
+    R:RegisterForFontAndColorChange(UpdateTabFonts)
     dock:Show();
 
     self:SecureHookScript(RightChatPanel, "OnHide", function() dock:Hide() end);
     self:SecureHookScript(RightChatPanel, "OnShow", function() dock:Show() end);
 
-    for i = 1, #embeds do
-        self[embeds[i] .. "_Load"](self);
-        self[embeds[i] .. "Embedded"] = true;
+    for _, addon in ipairs(embeds) do
+        if R:CheckDependency(addon) then
+            self[addon .. "_Load"](self);
+            self[addon .. "Embedded"] = true;
+            loaded[addon] = true;
+        end
     end
     UpdateTabs();
 end
 
 function MW:TabsSorted()
-    if self.SkadaLoaded then
+    if loaded['Skada'] then
         local skadaWindows = _G.Skada:GetWindows();
         for i, win in ipairs(skadaWindows) do
             if not win.tab.isHidden then
                 win.embedID = win.tab.position;
-                PROFILE.positions[win.db.name] = win.tab.position;
+                R.profile.meters.positions[win.db.name] = win.tab.position;
             end
         end
     end
-    if self.RecountLoaded then
+    if loaded['Recount'] then
         local win = Recount.MainWindow;
         win.embedID = win.tab.position;
     end
 end
 
 function MW:Skada_Load()
-    if not rui.SkadaLoaded then return end
-
     local Skada = _G["Skada"];
 
     -- We hook into Skada:ApplySettings() to redesign the Skada windows.
@@ -98,7 +90,7 @@ function MW:Skada_Load()
         end
     end
     self:SecureHook(Skada, "ApplySettings", ApplySettings);
-    rui:RegisterForFontChange(ApplySettings);
+    R:RegisterForFontChange(ApplySettings);
 
     -- We hook into Skada:CreateWindow() so we know if a window is new.
     local function CreateWindow(sk, name, db)
@@ -122,7 +114,7 @@ function MW:Skada_UpdateWindowSettings(win)
     local isNew = win.db.name == newSkadaWindowFound;
 
     if not win.tab or isNew then
-        local tab = NewDockTab(win.db.name, PROFILE.positions[win.db.name]);
+        local tab = NewDockTab(win.db.name, R.profile.meters.positions[win.db.name]);
         win.embedID = tab.position;
 
         -- Locks the BarGroup from being resized.
@@ -145,10 +137,10 @@ function MW:Skada_UpdateWindowSettings(win)
     win.bargroup:SetFrameLevel(win.frameLevel);
 
     win.bargroup:SetInside(win.tab.frame);
-    win.bargroup:SetBarHeight((win.bargroup:GetHeight()) / PROFILE.visibleBars);
+    win.bargroup:SetBarHeight((win.bargroup:GetHeight()) / R.profile.meters.visibleBars);
     win.bargroup:SetLength(win.bargroup:GetWidth());
 
-    win.bargroup:SetFont(rui:GetChatFont(2));
+    win.bargroup:SetFont(R:GetChatFont(2));
 
     if isNew then
         SelectTab(win.tab);
@@ -157,8 +149,6 @@ function MW:Skada_UpdateWindowSettings(win)
 end
 
 function MW:Recount_Load()
-    if not rui.RecountLoaded then return end
-
     local Recount = _G.Recount;
     local mainWindow = Recount.MainWindow;
 
@@ -181,7 +171,7 @@ function MW:Recount_Load()
     self:Hook(Recount, "ResizeMainWindow", AdjustPosition);
 
     if not mainWindow.tab then
-        local tab = NewDockTab("Recount", PROFILE.positions["Recount"]);
+        local tab = NewDockTab("Recount", R.profile.meters.positions["Recount"]);
         mainWindow.embedID = tab.position;
         mainWindow.tab = tab;
         mainWindow:SetParent(tab.frame);
@@ -201,8 +191,7 @@ function MW:Recount_Load()
         Recount:LockWindows(true);
     end
 
-    Recount.db.profile.MainWindow.RowHeight = (mainWindow.tab.frame:GetHeight() - 15) / PROFILE.visibleBars;
-    --Recount.db.profile.MainWindowVis = true;
+    Recount.db.profile.MainWindow.RowHeight = (mainWindow.tab.frame:GetHeight() - 15) / R.profile.meters.visibleBars;
 
     Recount.Colors:SetColor("Window", "Title", { r = 0, g = 0, b = 0, a = 0 });
     Recount.Colors:SetColor("Window", "Background", { r = 0, g = 0, b = 0, a = 0 });
@@ -300,7 +289,7 @@ function SetDockPosition(anchor, forceUpdate)
     dock:Point("TOPRIGHT", dock.anchor, "TOPRIGHT", -SPACING, -SPACING);
 
     dock.meterAnchor:Point("TOPLEFT", dock, "BOTTOMLEFT", SPACING / 3, -SPACING);
-    if rui.ElvUI.db.datatexts.rightChatPanel then
+    if R.ElvUI.db.datatexts.rightChatPanel then
         dock.meterAnchor:Point("BOTTOMRIGHT", dock.anchor, "BOTTOMRIGHT", -SPACING * 1.5, RightChatDataPanel:GetHeight() + (SPACING * 2));
     else
         dock.meterAnchor:Point("BOTTOMRIGHT", dock.anchor, "BOTTOMRIGHT", -SPACING * 1.5, SPACING * 1.5);
@@ -439,8 +428,8 @@ function UpdateTabs()
 end
 
 function UpdateTabFonts()
-    local r, g, b = rui:GetTabFontColor();
-    local f, s, o = rui:GetTabFont();
+    local r, g, b = R:GetTabFontColor();
+    local f, s, o = R:GetTabFont();
 
     for _, tab in IterateDockedTabs() do
         local fs = tab:GetFontString();
@@ -539,24 +528,14 @@ function OverflowButton_UpdateList(list)
     end
 end
 
-local defaults = {
-    profile = {
-        enableSkada = true,
-        enableRecount = true,
-        enableDetails = true,
-        visibleBars = 7,
-        positions = {
-
-        },
-    },
-    global = {
-
-    },
-    char = {
+profile.meters = {
+    enableSkada = true,
+    enableRecount = true,
+    enableDetails = true,
+    visibleBars = 7,
+    positions = {
 
     },
 }
 
-local function init(...) MW:Initialize(...) end
-local function elvuiInit() MW:ElvUIInitialized() end
-rui:RegisterModule(MW, defaults, init, elvuiInit);
+R:RegisterModule(MW, function() MW:Initialize() end, function() MW:ElvUIInitialized() end);

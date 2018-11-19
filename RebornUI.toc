@@ -1,11 +1,10 @@
 ## Interface: 80000
 ## Version: @project-version@
-## Author: Bynas
+## Author: Keador
 ## Title: RebornUI
 ## Notes: A few UI tweaks for World of Warcraft and ElvUI
 ## SavedVariables: RebornUI_DB
-
-## OptionalDeps: ElvUI, Skada, Recount, Details
+## Dependencies: ElvUI
 
 libs\LibStub\LibStub.lua
 libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
@@ -24,15 +23,15 @@ libs\AceConfig-3.0\AceConfig-3.0.xml
 # libs\AceTab-3.0\AceTab-3.0.xml
 # libs\AceSerializer-3.0\AceSerializer-3.0.xml
 
-localization\enUS.lua
 #@debug@
 utils\DevHelper.lua
 #@end-debug@
 
-RebornUI.lua
+localization\enUS.lua
 media\SharedMedia.xml
-events\EventHandler.lua
-events\Events.lua
+
+
+RebornUI.lua
 
 core\Core.xml
 

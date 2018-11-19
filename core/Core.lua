@@ -1,2 +1,2 @@
 ---@type RebornUI
-local rui = RebornUI;
+local R = RebornUI;

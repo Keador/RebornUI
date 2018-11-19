@@ -1,5 +1,5 @@
 ---@type RebornUI
-local rui = RebornUI;
+local R = RebornUI;
 
 ---@class EventHandler
 local EventHandler = {};
@@ -46,4 +46,4 @@ function EventHandler:FireEvent(event, ...)
     self:SendMessage(event, ...);
 end
 
-rui.EventHandler = EventHandler;
+R.EventHandler = EventHandler;
